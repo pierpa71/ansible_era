@@ -1,0 +1,86 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  #gather_facts: false
+  vars:
+    era_ip: "192.168.222.3"
+    tms: "472f453c-0dd9-4ea8-9538-b7b96bbaa2b2"
+    body_js: "{{ lookup('file','template/clone_info2.json') }}"
+    ssh_pub_key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQCgUi+pnrbUYdNqO1htVMUNzZP1Rs5G47FmEhS+70I9EFam96hhKDAnhkenoEnw6geiIEkM+PWE955bFAoBGyit9m5J4du9wNrf7iUhq7XbhBgC4UIpG5Y6jzRcVf0T9l1YV3tAXp6jnhXsh7UUe4zgLnS0vXIzAzBkL+ZkZTF7Ht/lsayCwih7L0wAnL2gROhQEbdsr3NPT0KcPtscwcLfdxSZDsnUieUnPZjoNdMEtvsuwSouY4upCt/4PWcltCI6mn8JdjZaMQN43bX7jgoWI08USXAoqvu/vyh4mBBwlmk/Clrpk4PfYAHoa2Z00nubIWUEfjtA+J0gHhHLj5Hx root@C02WQ11PHV2R"
+    auth_key: "YWRtaW46QUhWNGV2ZXIv"
+
+  tasks:
+
+    - name: Include vars in clusterinfo.yml file
+      include_vars:
+        file: era/clusterinfo.yml
+        name: clusterinfo
+    - name: Include vars in compute-profiles.yml file
+      include_vars:
+        file: era/compute-profiles.yml
+        name: computeprofiles
+    - name: Include vars in network-profiles.yml file
+      include_vars:
+        file: era/network-profiles.yml
+        name: networkprofiles
+    - name: Include vars in -profiles.yml file
+      include_vars:
+        file: era/db-parameters-profiles.yml
+        name: dbprofiles
+
+    - name: Leggi template clone
+      ansible.builtin.set_fact:
+        jsondata: "{{ lookup('file', 'template/clone_info.json') }}"
+    - name: get Timestamp
+      ansible.builtin.set_fact:
+        timestamp: "{{ ansible_date_time.iso8601_basic_short }}"
+    - name: Aggiorna dati del Clone
+      ansible.utils.update_fact:
+        updates:
+          - path: jsondata.name
+            value: "Clone-{{timestamp}}"
+          - path: jsondata.nxClusterId
+            value: "{{ clusterinfo.nxClusterId }}"
+          - path: jsondata.computeProfileId
+            value: "{{ computeprofiles.SmallSize }}"
+          - path: jsondata.networkProfileId
+            value: "{{ networkprofiles.DEFAULT_OOB_POSTGRESQL_NETWORK }}"
+          - path: jsondata.databaseParameterProfileId
+            value: "{{ dbprofiles.DEFAULT_POSTGRES_PARAMS }}"
+          - path: jsondata.actionArguments[0].value
+            value: "eraDBCloneVM-{{timestamp}}"
+          - path: jsondata.actionArguments[1].value
+            value: "nutanix/4u"
+          - path: jsondata.nodes[0].computeProfileId
+            value: "{{ computeprofiles.SmallSize }}"
+          - path: jsondata.nodes[0].networkProfileId
+            value: "{{ networkprofiles.DEFAULT_OOB_POSTGRESQL_NETWORK }}"
+          - path: jsondata.nodes[0].nxClusterId
+            value: "{{ clusterinfo.nxClusterId }}"
+          - path: jsondata.nodes[0].vmName
+            value: "eraDBCloneVM-{{timestamp}}"
+          - path: jsondata.sshPublicKey
+            value: "{{ssh_pub_key}}"
+          - path: jsondata.timeMachineId
+            value: "{{tms}}"
+
+      register: update
+    - name: Crea  Clone DB partendo da timemachine e snapshot
+      uri:
+        url: "https://{{ era_ip }}/era/v0.9/tms/{{ tms }}/clones"
+        method: POST
+        return_content: yes
+        validate_certs: no
+        body_format: json
+        force_basic_auth: yes
+        body: "{{update.jsondata | to_json}}"
+        #body: "{{body_js| to_json}}"
+        #body: "{{ lookup('file','template/clone_info2.json') }}"
+        headers:
+          Content-Type: application/json
+          Authorization: "Basic {{auth_key}}"
+    - name: print result
+      debug:
+        #var: update.jsondata
+        #var: update.jsondata
+        var: "{{body_js| to_json}}"

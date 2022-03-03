@@ -1,0 +1,96 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  #gather_facts: false
+  vars:
+    era_ip: "192.168.222.3"
+    authkey: "YWRtaW46QUhWNGV2ZXIv"
+    tms: ""
+    #body_js: "{{ lookup('file','clone_info.json') | from_json }}"
+  tasks:
+
+##  GET Era Cluster ID (only first cluster, codes must be changed in a multicluster environment)
+    - name: get cluster ID
+      uri:
+        url: "https://{{ era_ip }}/era/v0.9/clusters"
+        method: GET
+        return_content: yes
+        validate_certs: no
+        force_basic_auth: yes
+        headers:
+          Content-Type: application/json
+          Authorization: Basic "{{ authkey }}"
+      register: risultato
+    - name: assegno variabile
+      set_fact:
+        cluster:  "{{ risultato.content | from_json }}"
+    - copy:
+        content: "--- \nnxClusterId: {{ cluster[0].id }}"
+        dest: "era/clusterinfo.yml"
+
+    - name: get profiles
+      uri:
+        url: "https://{{ era_ip }}/era/v0.9/profiles"
+        method: GET
+        return_content: yes
+        validate_certs: no
+        force_basic_auth: yes
+        headers:
+          Content-Type: application/json
+          Authorization: Basic YWRtaW46QUhWNGV2ZXIv
+      register: risultato
+    - name: assegno variabile
+      set_fact:
+        profiles:  "{{ risultato.content | from_json }}"
+### SOFTWARE PROFILES file populate
+    - name: delete software profiles file
+      shell: |
+        rm era/software-profiles.vars
+      ignore_errors: yes
+    - name: scrivi su file
+      shell: |
+        echo "{{ item.name }}: {{ item.id}}" >> era/software-profiles.yml
+      when:
+        - item.type=="Software"
+      with_items: '{{ profiles }}'
+
+### COMPUTE PROFILES file populate
+    - name: delete compute profiles file
+      shell: |
+        rm era/compute-profiles.yml
+      ignore_errors: yes
+    - name: scrivi su file compute profiles
+      shell: |
+        echo "{{ item.name }}: {{ item.id}}" >> era/compute-profiles.yml
+      when:
+        - item.type=="Compute"
+      with_items: '{{ profiles }}'
+
+### NETWORK PROFILES file populate
+    - name: delete network profiles file
+      shell: |
+        rm era/network-profiles.yml
+      ignore_errors: yes
+    - name: scrivi su file network profiles
+      shell: |
+        echo "{{ item.name }}: {{ item.id}}" >> era/network-profiles.yml
+      when:
+        - item.type=="Network"
+      with_items: '{{ profiles }}'
+
+### Database_Parameter PROFILES file populate
+    - name: delete database_parameter profiles file
+      shell: |
+        rm era/db-parameters-profiles.yml
+      ignore_errors: yes
+    - name: scrivi su file db parameters profiles
+      shell: |
+        echo "{{ item.name }}: {{ item.id}}" >> era/db-parameters-profiles.yml
+      when:
+        - item.type=="Database_Parameter"
+      with_items: '{{ profiles }}'
+
+
+    # - name: debug
+    #   debug:
+    #      var: profiles.name

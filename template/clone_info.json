@@ -1,0 +1,42 @@
+{
+  "name": "",
+  "description": "",
+  "createDbserver": true,
+  "clustered": false,
+  "nxClusterId": "",
+  "sshPublicKey": "",
+  "dbserverId": null,
+  "dbserverClusterId": null,
+  "dbserverLogicalClusterId": null,
+  "timeMachineId": null,
+  "snapshotId": null,
+  "userPitrTimestamp": "2022-03-03 14:56:48",
+  "timeZone": "Europe/Rome",
+  "latestSnapshot": false,
+  "nodeCount": 1,
+  "nodes": [
+    {
+      "vmName": "",
+      "computeProfileId": "",
+      "networkProfileId": "",
+      "newDbServerTimeZone": null,
+      "nxClusterId": "",
+      "properties": []
+    }
+  ],
+  "actionArguments": [
+    {
+      "name": "vm_name",
+      "value": ""
+    },
+    {
+      "name": "db_password",
+      "value": ""
+    }
+  ],
+  "tags": [],
+  "computeProfileId": "",
+  "vmPassword": "nutanix/4u",
+  "networkProfileId": "",
+  "databaseParameterProfileId": ""
+}
