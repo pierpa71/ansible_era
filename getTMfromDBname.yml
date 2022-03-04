@@ -1,0 +1,43 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  #gather_facts: false
+  vars:
+    era_ip: "192.168.222.3"
+    auth_key: "YWRtaW46QUhWNGV2ZXIv"
+    dbname: "migra"
+
+  tasks:
+
+    - name: Include vars in clusterinfo.yml file
+      include_vars:
+        file: era/clusterinfo.yml
+        name: clusterinfo
+
+    - name: Get DB list
+      uri:
+        url: "https://{{ era_ip }}/era/v0.9/databases"
+        method: GET
+        return_content: yes
+        validate_certs: no
+        force_basic_auth: yes
+        headers:
+          Content-Type: application/json
+          Authorization: "Basic {{auth_key}}"
+      register: result
+
+    - name: cerca timeMachineId
+      debug:
+         msg: "{{item.name}}"
+      loop: "{{result.json}}"
+      when: item.name=="migra"
+
+    - name: cerca TimeMachine ID
+      ansible.builtin.set_fact:
+          tms: "{{item.timeMachineId}}"
+      loop: "{{result.json}}"
+      when: item.name=="migra"
+
+    # - name: debug
+    #   debug:
+    #     var: tms

@@ -1,0 +1,16 @@
+---
+- hosts: 127.0.0.1
+  connection: local
+  #gather_facts: false
+  vars:
+  tasks:
+    - name: debug
+      debug:
+        var: tms
+
+
+- name: Include a play after another play
+  import_playbook: getTMfromDBname.yml
+
+- name: Include a play after another play
+  import_playbook: testimport.yml
